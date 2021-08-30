@@ -11,24 +11,24 @@ import (
 	"strings"
 )
 
-func iterateUsers(fn NextUserFunc) error {
+func allUsers() (users []*User, err error) {
 	f, err := os.Open(userFile)
 	if err != nil {
-		return err
+		return
 	}
 	defer f.Close()
-	_, err = readColonFile(f, usersIterator(fn), 6)
-	return err
+	_, err = readColonFile(f, usersIterator(&users), 6)
+	return
 }
 
-func iterateGroups(fn NextGroupFunc) error {
+func allGroups() (groups []*Group, err error) {
 	f, err := os.Open(groupFile)
 	if err != nil {
-		return err
+		return
 	}
 	defer f.Close()
-	_, err = readColonFile(f, groupsIterator(fn), 3)
-	return err
+	_, err = readColonFile(f, groupsIterator(&groups), 3)
+	return
 }
 
 // parseGroupLine is lineFunc to parse a valid group line for iteration.
@@ -89,13 +89,11 @@ func parseUserLine(line []byte) (v interface{}, err error) {
 // usersIterator parses *User and passes it to fn for each given valid line
 // read by readColonFile. If non-nil error is returned from fn, iteration
 // is terminated.
-func usersIterator(fn NextUserFunc) lineFunc {
+func usersIterator(users *[]*User) lineFunc {
 	return func(line []byte) (interface{}, error) {
 		v, _ := parseUserLine(line)
 		if u, ok := v.(*User); ok {
-			if err := fn(u); err != nil {
-				return nil, err
-			}
+			*users = append(*users, u)
 		}
 		return nil, nil
 	}
@@ -104,13 +102,11 @@ func usersIterator(fn NextUserFunc) lineFunc {
 // groupsIterator parses *Group and passes it to fn for each given valid line
 // read by readColonFile. If non-nil error is returned from fn, iteration
 // is terminated.
-func groupsIterator(fn NextGroupFunc) lineFunc {
+func groupsIterator(groups *[]*Group) lineFunc {
 	return func(line []byte) (interface{}, error) {
 		v, _ := parseGroupLine(line)
 		if g, ok := v.(*Group); ok {
-			if err := fn(g); err != nil {
-				return nil, err
-			}
+			*groups = append(*groups, g)
 		}
 		return nil, nil
 	}

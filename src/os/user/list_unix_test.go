@@ -33,10 +33,7 @@ kmem:*:2:root
 	r := strings.NewReader(testGroupFile)
 
 	gotGroups := make([]*Group, 0, len(wantGroups))
-	_, err := readColonFile(r, groupsIterator(func(g *Group) error {
-		gotGroups = append(gotGroups, g)
-		return nil
-	}), 3)
+	_, err := readColonFile(r, groupsIterator(&gotGroups), 3)
 
 	if len(gotGroups) != len(wantGroups) {
 		t.Errorf("wantGroups could not be retrieved correctly: parsed %d/%d", len(gotGroups), len(wantGroups))
@@ -79,10 +76,7 @@ struid2:x:30:badgid:struid2name:/home/struid:/usr/sbin/nologin
 
 	gotUsers := make([]*User, 0, len(wantUsers))
 	r := strings.NewReader(testUserFile)
-	_, err := readColonFile(r, usersIterator(func(u *User) error {
-		gotUsers = append(gotUsers, u)
-		return nil
-	}), 6)
+	_, err := readColonFile(r, usersIterator(&gotUsers), 6)
 
 	if len(gotUsers) != len(wantUsers) {
 		t.Errorf("wantUsers could not be parsed correctly: parsed %d/%d", len(gotUsers), len(wantUsers))

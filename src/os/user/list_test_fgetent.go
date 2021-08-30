@@ -36,7 +36,7 @@ import (
 	"os"
 )
 
-// iterateUsersHelperTest implements usersHelper interface and is used for testing
+// iterateUsersHelperTest implements usersIterator interface and is used for testing
 // users iteration functionality with fgetpwent(3).
 type iterateUsersHelperTest struct {
 	fp *C.FILE
@@ -68,7 +68,7 @@ func (i *iterateUsersHelperTest) end() {
 	}
 }
 
-// iterateGroupsHelperTest implements groupsHelper interface and is used for testing
+// iterateGroupsHelperTest implements groupsIterator interface and is used for testing
 // users iteration functionality with fgetgrent(3).
 type iterateGroupsHelperTest struct {
 	f  *os.File

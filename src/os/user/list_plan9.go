@@ -70,28 +70,24 @@ func groupReturnFn(parts []string) interface{} {
 	return &Group{Name: parts[1], Gid: parts[0]}
 }
 
-func iterateUsers(fn NextUserFunc) error {
-	return userGroupIterator(func(line []byte) (interface{}, error) {
+func allUsers() (users []*User, err error) {
+	err = userGroupIterator(func(line []byte) (interface{}, error) {
 		v, _ := parsePlan9UserGroup(userReturnFn)(line)
 		if user, ok := v.(*User); ok {
-			err := fn(user)
-			if err != nil {
-				return nil, err
-			}
+			users = append(users, user)
 		}
 		return nil, nil
 	})
+	return
 }
 
-func iterateGroups(fn NextGroupFunc) error {
-	return userGroupIterator(func(line []byte) (interface{}, error) {
+func allGroups() (groups []*Group, err error) {
+	err = userGroupIterator(func(line []byte) (interface{}, error) {
 		v, _ := parsePlan9UserGroup(groupReturnFn)(line)
 		if group, ok := v.(*Group); ok {
-			err := fn(group)
-			if err != nil {
-				return nil, err
-			}
+			groups = append(groups, group)
 		}
 		return nil, nil
 	})
+	return
 }

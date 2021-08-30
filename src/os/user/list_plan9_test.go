@@ -92,13 +92,7 @@ func TestIterateUsers(t *testing.T) {
 	}()
 
 	usersFile = testUsersFile
-
-	gotUsers := make([]*User, 0, len(wantUsers))
-
-	err := iterateUsers(func(user *User) error {
-		gotUsers = append(gotUsers, user)
-		return nil
-	})
+	gotUsers, err := allUsers()
 
 	if err != nil {
 		t.Error(err)
@@ -116,13 +110,7 @@ func TestIterateGroups(t *testing.T) {
 	}()
 
 	usersFile = testUsersFile
-
-	gotGroups := make([]*Group, 0, len(wantGroups))
-
-	err := iterateGroups(func(groups *Group) error {
-		gotGroups = append(gotGroups, groups)
-		return nil
-	})
+	gotGroups, err := allGroups()
 
 	if err != nil {
 		t.Error(err)
