@@ -1,0 +1,111 @@
+//go:build (aix || darwin || dragonfly || freebsd || (js && wasm) || (!android && linux) || netbsd || openbsd || solaris) && (!cgo || osusergo)
+// +build aix darwin dragonfly freebsd js,wasm !android,linux netbsd openbsd solaris
+// +build !cgo osusergo
+
+package user
+
+import (
+	"bytes"
+	"os"
+	"strconv"
+	"strings"
+)
+
+func allUsers() (users []*User, err error) {
+	f, err := os.Open(userFile)
+	if err != nil {
+		return
+	}
+	defer f.Close()
+	_, err = readColonFile(f, usersIterator(&users), 6)
+	return
+}
+
+func allGroups() (groups []*Group, err error) {
+	f, err := os.Open(groupFile)
+	if err != nil {
+		return
+	}
+	defer f.Close()
+	_, err = readColonFile(f, groupsIterator(&groups), 3)
+	return
+}
+
+// parseGroupLine is lineFunc to parse a valid group line for iteration.
+func parseGroupLine(line []byte) (v interface{}, err error) {
+	if bytes.Count(line, colon) < 3 {
+		return
+	}
+	// wheel:*:0:root
+	parts := strings.SplitN(string(line), ":", 4)
+	if len(parts) < 4 || parts[0] == "" ||
+		// If the file contains +foo and you search for "foo", glibc
+		// returns an "invalid argument" error. Similarly, if you search
+		// for a gid for a row where the group name starts with "+" or "-",
+		// glibc fails to find the record.
+		parts[0][0] == '+' || parts[0][0] == '-' {
+		return
+	}
+	if _, err := strconv.Atoi(parts[2]); err != nil {
+		return nil, nil
+	}
+	return &Group{Name: parts[0], Gid: parts[2]}, nil
+}
+
+// parseUserLine is lineFunc to parse a valid user line for iteration.
+func parseUserLine(line []byte) (v interface{}, err error) {
+	if bytes.Count(line, colon) < 6 {
+		return
+	}
+	// kevin:x:1005:1006::/home/kevin:/usr/bin/zsh
+	parts := strings.SplitN(string(line), ":", 7)
+	if len(parts) < 6 || parts[0] == "" ||
+		parts[0][0] == '+' || parts[0][0] == '-' {
+		return
+	}
+	if _, err := strconv.Atoi(parts[2]); err != nil {
+		return nil, nil
+	}
+	if _, err := strconv.Atoi(parts[3]); err != nil {
+		return nil, nil
+	}
+	u := &User{
+		Username: parts[0],
+		Uid:      parts[2],
+		Gid:      parts[3],
+		Name:     parts[4],
+		HomeDir:  parts[5],
+	}
+	// The pw_gecos field isn't quite standardized. Some docs
+	// say: "It is expected to be a comma separated list of
+	// personal data where the first item is the full name of the
+	// user."
+	if i := strings.Index(u.Name, ","); i >= 0 {
+		u.Name = u.Name[:i]
+	}
+	return u, nil
+}
+
+// usersIterator parses *User and appends it to users
+// slice for each given valid line read by readColonFile.
+func usersIterator(users *[]*User) lineFunc {
+	return func(line []byte) (interface{}, error) {
+		v, _ := parseUserLine(line)
+		if u, ok := v.(*User); ok {
+			*users = append(*users, u)
+		}
+		return nil, nil
+	}
+}
+
+// groupsIterator parses *Group and appends it to groups
+// slice for each given valid line read by readColonFile.
+func groupsIterator(groups *[]*Group) lineFunc {
+	return func(line []byte) (interface{}, error) {
+		v, _ := parseGroupLine(line)
+		if g, ok := v.(*Group); ok {
+			*groups = append(*groups, g)
+		}
+		return nil, nil
+	}
+}
